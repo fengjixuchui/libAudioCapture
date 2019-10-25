@@ -13,12 +13,12 @@ int main()
 
     std::atomic<bool> bStop(false);
     std::thread t = std::thread([&](){
-        std::cout << "recording...";
-        for (auto i=0; i<5; i++) {
-            std::cout << "\r" << "countdown " << i+1 << std::flush;
+        std::cout << "\n";
+        for (auto i=0; i<10; i++) {
+            std::cout << "\rrecording ... " << i+1 << "/10" << std::flush;
             std::this_thread::sleep_for(std::chrono::seconds(1));
         }
-        std::cout << std::endl;
+        std::cout << "\n";
         bStop.store(true);
     });
 
