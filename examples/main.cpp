@@ -22,33 +22,27 @@ int main()
         bStop.store(true);
     });
 
-    uint32_t const PERIOD = 1024;   // 1024 frames per period
-    uint32_t const CHANNEL = 2;     // stereo
-    uint32_t const bufferSize = 2 * CHANNEL * PERIOD; // 2 means 16 bits (2 bytes)
-    char* buffer = new char [bufferSize];
+    long ret = 0;
+    uint32_t aDataSize = 0;
+    void* pData = nullptr;
 
     std::ofstream output("./sound.pcm", std::ios::binary | std::ios::trunc);
 
     while (!bStop) {
-        long ret = -1;
-        ret = ENGINE.GetBuffer(buffer, PERIOD);
+        ret = ENGINE.GetBuffer(&pData, aDataSize);
         if (ret < 0) {
             std::clog << "XRUN...\n";
             continue;
         }
 
-        if (output.is_open()) {
-            output.write(buffer, bufferSize);
+        if (output.is_open() && pData && aDataSize > 0) {
+            output.write(static_cast<char*>(pData), aDataSize);
             assert(output.good());
         }
     }
 
     if (output.is_open()) {
         output.close();
-    }
-
-    if (buffer) {
-        delete [] buffer;
     }
 
     if (t.joinable()) {

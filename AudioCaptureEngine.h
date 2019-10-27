@@ -12,7 +12,16 @@ public:
     void Init();
     void Uninit();
 
-    long GetBuffer(void* pData, uint32_t aDataSize);
+    long GetBuffer(void** ppData, uint32_t& aDataSize);
+
+private:
+    uint32_t PERIOD;
+    uint32_t CHANNEL;
+    uint32_t FORMAT;
+    uint32_t SAMPLE_RATE;
+
+    uint32_t mPcmSize;
+    char* mPcmBuffer;
 };
 
 #endif // AUDIOCAPTUREENGINE_H

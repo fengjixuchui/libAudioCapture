@@ -4,13 +4,20 @@
 
 static snd_pcm_t *capture_handle = nullptr;
 
-AudioCaptureEngine::AudioCaptureEngine()
+AudioCaptureEngine::AudioCaptureEngine() :
+    PERIOD(1024),
+    CHANNEL(2),
+    FORMAT(2),
+    SAMPLE_RATE(44100),
+    mPcmSize(0),
+    mPcmBuffer(nullptr)
 {
 }
 
 AudioCaptureEngine::~AudioCaptureEngine()
 {
     assert(capture_handle == nullptr);
+    assert(mPcmBuffer == nullptr);
 }
 
 void AudioCaptureEngine::Init()
@@ -24,10 +31,8 @@ void AudioCaptureEngine::Init()
     snd_pcm_stream_t const CAPTURE = SND_PCM_STREAM_CAPTURE;
     snd_pcm_access_t const ACCESS = SND_PCM_ACCESS_RW_INTERLEAVED;
     snd_pcm_format_t const FORMAT = SND_PCM_FORMAT_S16;
-    uint32_t SAMPLE_RATE = 44100;
-    uint32_t const CHANNEL = 2;
 
-    int err;
+    int32_t err;
 
     if ((err = snd_pcm_open (&capture_handle, "default", CAPTURE, 0)) < 0) {
         fprintf (stderr, "cannot open audio device %s (%s)\n", "default", snd_strerror (err));
@@ -86,6 +91,13 @@ void AudioCaptureEngine::Init()
         return;
     }
     fprintf(stdout, "audio interface prepared\n");
+
+    if (mPcmBuffer == nullptr) {
+        mPcmBuffer = new(std::nothrow) char [FORMAT * CHANNEL * PERIOD];
+        if (mPcmBuffer) {
+            mPcmSize = FORMAT * CHANNEL * PERIOD;
+        }
+    }
 }
 
 void AudioCaptureEngine::Uninit()
@@ -94,15 +106,24 @@ void AudioCaptureEngine::Uninit()
         snd_pcm_close(capture_handle);
         capture_handle = nullptr;
     }
+
+    if (mPcmBuffer) {
+        delete [] mPcmBuffer;
+        mPcmBuffer = nullptr;
+    }
 }
 
-long AudioCaptureEngine::GetBuffer(void* pData, uint32_t aDataSize)
+long AudioCaptureEngine::GetBuffer(void** ppData, uint32_t& aDataSize)
 {
-    auto ret = snd_pcm_readi(capture_handle, pData, aDataSize);
+    auto ret = snd_pcm_readi(capture_handle, mPcmBuffer, PERIOD);
     if (ret < 0) {
         if (capture_handle) {
             snd_pcm_prepare(capture_handle);
         }
     }
+
+    aDataSize = ret < 0 ? 0 : mPcmSize;
+    (*ppData) = ret < 0 ? nullptr : mPcmBuffer;
+
     return ret;
 }
